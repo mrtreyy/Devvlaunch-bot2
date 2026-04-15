@@ -1,32 +1,15 @@
-const fs = require('fs').promises;
-const path = require('path');
+const { Redis } = require('@upstash/redis');
 
-const DATA_FILE = path.join(__dirname, '../data/users.json');
+const redis = Redis.fromEnv();
 
 class Database {
-  constructor() {
-    this.users = new Map();
-    this.init();
-  }
-
-  async init() {
-    try {
-      const data = await fs.readFile(DATA_FILE, 'utf8');
-      const users = JSON.parse(data);
-      users.forEach(user => this.users.set(user.userId, user));
-      console.log(`Loaded ${this.users.size} users`);
-    } catch (error) {
-      await this.save();
-    }
-  }
-
-  async save() {
-    const usersArray = Array.from(this.users.values());
-    await fs.writeFile(DATA_FILE, JSON.stringify(usersArray, null, 2));
-  }
-
   async getUser(userId) {
-    return this.users.get(userId) || null;
+    const user = await redis.get(`user:${userId}`);
+    return user ? JSON.parse(user) : null;
+  }
+
+  async saveUser(user) {
+    await redis.set(`user:${user.userId}`, JSON.stringify(user));
   }
 
   async createUser(userId, username, firstName, referredBy = null) {
@@ -44,16 +27,10 @@ class Database {
       isVerified: false
     };
     
-    this.users.set(userId, user);
-    await this.save();
+    await this.saveUser(user);
     
     if (referredBy && referredBy !== userId) {
-      const referrer = await this.getUser(referredBy);
-      if (referrer) {
-        referrer.referralPoints += 1;
-        referrer.referralsCount += 1;
-        await this.save();
-      }
+      await this.addReferralPoints(referredBy, userId);
     }
     
     return user;
@@ -64,21 +41,47 @@ class Database {
     if (user) {
       Object.assign(user, updates);
       user.lastActive = new Date().toISOString();
-      this.users.set(userId, user);
-      await this.save();
+      await this.saveUser(user);
+      return user;
     }
-    return user;
+    return null;
+  }
+
+  async addReferralPoints(referrerId, newUserId) {
+    const referrer = await this.getUser(referrerId);
+    if (referrer) {
+      referrer.referralPoints += 1;
+      referrer.referralsCount += 1;
+      await this.saveUser(referrer);
+    }
+  }
+
+  async useReferralPoints(userId, pointsToUse) {
+    const user = await this.getUser(userId);
+    if (user && user.referralPoints >= pointsToUse) {
+      user.referralPoints -= pointsToUse;
+      user.pointsRedeemed += pointsToUse;
+      await this.saveUser(user);
+      return true;
+    }
+    return false;
   }
 
   async getAllUsers() {
-    return Array.from(this.users.values());
+    const keys = await redis.keys('user:*');
+    const users = [];
+    for (const key of keys) {
+      const user = await redis.get(key);
+      if (user) users.push(JSON.parse(user));
+    }
+    return users;
   }
 
   async getStats() {
     const users = await this.getAllUsers();
     return {
       totalUsers: users.length,
-      totalReferrals: users.reduce((sum, u) => sum + u.referralsCount, 0),
+      totalReferrals: users.reduce((sum, u) => sum + (u.referralsCount || 0), 0),
       activeUsers: users.filter(u => {
         const lastActive = new Date(u.lastActive);
         return (Date.now() - lastActive) / (1000 * 60 * 60 * 24) <= 7;
