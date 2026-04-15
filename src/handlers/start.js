@@ -13,17 +13,17 @@ async function checkGroup(ctx) {
 
 async function startHandler(ctx) {
   const isMember = await checkGroup(ctx);
-  
+
   if (!isMember) {
     return ctx.reply('✨ Welcome! Please join our community first.',
       Markup.inlineKeyboard([
-        [Markup.button.url('🔗 Join Community', `https://t.me/devlaunchcommunity`)],
+        [Markup.button.url('🔗 Join Community', 'https://t.me/devvlaunchcommunity')],
         [Markup.button.callback('✅ I\'ve Joined', 'verify')]
       ]));
   }
-  
+
   await database.updateUser(ctx.from.id, { isVerified: true });
-  
+
   await ctx.replyWithPhoto(
     'https://via.placeholder.com/800x400/1a1a2e/ffffff?text=DevLaunch',
     {
@@ -32,7 +32,8 @@ async function startHandler(ctx) {
         [Markup.button.callback('🌐 Website Services', 'menu_website')],
         [Markup.button.callback('💳 Purchase Accounts', 'menu_purchase')],
         [Markup.button.callback('🎯 Referral Program', 'menu_referral')],
-        [Markup.button.callback('👨‍💻 Contact Dev', 'contact')]
+        [Markup.button.callback('👨‍💻 Contact Dev', 'contact')],
+        [Markup.button.callback('🌍 Join Community', 'join_group')]
       ])
     }
   );
