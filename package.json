@@ -2,7 +2,7 @@
   "name": "devlaunch-telegram-bot",
   "version": "1.0.0",
   "description": "DevLaunch Bot",
-  "main": "src/bot.js",
+  "main": "api/bot.js",
   "scripts": {
     "start": "node src/bot.js"
   },
@@ -10,7 +10,8 @@
     "telegraf": "^4.15.3",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
-    "axios": "^1.6.0"
+    "axios": "^1.6.0",
+    "@upstash/redis": "^1.28.0"
   },
   "engines": {
     "node": ">=18.0.0"
