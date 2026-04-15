@@ -24,10 +24,10 @@ async function startHandler(ctx) {
 
   await database.updateUser(ctx.from.id, { isVerified: true });
 
-  await ctx.replyWithPhoto(
-    'https://via.placeholder.com/800x400/1a1a2e/ffffff?text=DevLaunch',
+  await ctx.reply(
+    '✨ *WELCOME TO DEVLAUNCH* ✨\n\nDevLaunch helps creators and developers build powerful digital platforms.\n\n*Inside this bot you can:*\n\n• 🌐 Order professional websites\n• 💳 Purchase ready-made website accounts\n• 🎯 Earn referral rewards\n• 🤝 Collaborate with developers\n• 👨‍💻 Contact the creator Dev Treyy\n\nStart exploring below! 🚀',
     {
-      caption: '✨ WELCOME TO DEVLAUNCH ✨\n\nChoose an option:',
+      parse_mode: 'Markdown',
       ...Markup.inlineKeyboard([
         [Markup.button.callback('🌐 Website Services', 'menu_website')],
         [Markup.button.callback('💳 Purchase Accounts', 'menu_purchase')],
