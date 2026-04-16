@@ -1,41 +1,28 @@
-const { Telegraf, session } = require('telegraf');
+const { Telegraf } = require('telegraf');
 const config = require('../src/config');
-const database = require('../src/database');
-const { authMiddleware } = require('../src/middleware/auth');
-const { rateLimitMiddleware } = require('../src/middleware/rateLimit');
-const { startHandler } = require('../src/handlers/start');
-const { handleCustomRequest } = require('../src/handlers/website');
-const { handleCallback } = require('../src/handlers/callbacks');
-const { broadcastHandler, statsHandler } = require('../src/handlers/admin');
 
+// Initialize your bot
 const bot = new Telegraf(config.BOT_TOKEN);
 
-bot.use(session());
-bot.use(authMiddleware);
-bot.use(rateLimitMiddleware);
+// --- Your Bot's Logic (Copy this section exactly from your working src/bot.js) ---
+// Make sure to include all your bot.command, bot.action, and bot.on handlers here.
+// For a quick test, we'll add a simple /start command.
+bot.command('start', (ctx) => ctx.reply('Vercel deployment successful!'));
 
-bot.command('start', startHandler);
-bot.command('broadcast', broadcastHandler);
-bot.command('stats', statsHandler);
-
-bot.on('text', async (ctx) => {
-  const handled = await handleCustomRequest(ctx);
-  if (!handled) {
-    await ctx.reply('Please use the menu buttons. Type /start');
-  }
-});
-
-bot.action(/.*/, handleCallback);
-
-export default async function handler(req, res) {
-  if (req.method === 'POST') {
+// --- The CRITICAL Vercel Handler ---
+module.exports = async (req, res) => {
     try {
-      await bot.handleUpdate(req.body);
-      res.status(200).json({ ok: true });
+        // Only process POST requests from Telegram
+        if (req.method === 'POST') {
+            // Pass the incoming update to your bot
+            await bot.handleUpdate(req.body, res);
+            res.status(200).send('OK');
+        } else {
+            // Respond to GET requests to confirm the function is alive
+            res.status(200).send('Bot is ready.');
+        }
     } catch (error) {
-      res.status(400).json({ ok: false });
+        console.error('Error handling update:', error);
+        res.status(400).send('Bad Request');
     }
-  } else {
-    res.status(200).send('Bot is running');
-  }
-}
+};
